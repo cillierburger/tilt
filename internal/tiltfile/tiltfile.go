@@ -9,10 +9,10 @@ import (
 	"path/filepath"
 
 	"github.com/pkg/errors"
+	"github.com/windmilleng/tilt/internal/k8s"
 	"go.starlark.net/resolve"
 	"go.starlark.net/starlark"
 
-	"github.com/windmilleng/tilt/internal/k8s"
 	"github.com/windmilleng/tilt/internal/model"
 	"github.com/windmilleng/tilt/internal/ospath"
 )
@@ -74,15 +74,15 @@ func Load(ctx context.Context, filename string, matching map[string]bool, logs i
 		return nil, model.Manifest{}, nil, err
 	}
 
-	yamlManifest := model.Manifest{}
 	if len(unresourced) > 0 {
-		yamlManifest, err = k8s.NewK8sOnlyManifest(unresourcedName, unresourced)
+		yamlManifests, err := k8s.NewK8sOnlyManifestsPerEntity(unresourced)
 		if err != nil {
 			return nil, model.Manifest{}, nil, err
 		}
+		manifests = append(manifests, yamlManifests...)
 	}
 
-	return manifests, yamlManifest, s.configFiles, err
+	return manifests, model.Manifest{}, s.configFiles, err
 }
 
 func skylarkStringDictToGoMap(d *starlark.Dict) (map[string]string, error) {

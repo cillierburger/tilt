@@ -14,7 +14,7 @@ func NewTarget(name model.TargetName, entities []K8sEntity, portForwards []model
 
 	var resourceNames []string
 	for _, e := range entities {
-		resourceNames = append(resourceNames, fmt.Sprintf("%s (%s)", e.Name(), e.Kind.Kind))
+		resourceNames = append(resourceNames, resourceName(e))
 	}
 
 	return model.K8sTarget{
@@ -33,7 +33,25 @@ func NewK8sOnlyManifest(name model.ManifestName, entities []K8sEntity) (model.Ma
 	return model.Manifest{Name: name}.WithDeployTarget(kTarget), nil
 }
 
+func NewK8sOnlyManifestsPerEntity(entities []K8sEntity) ([]model.Manifest, error) {
+	manifests := make([]model.Manifest, len(entities))
+	for i, e := range entities {
+		name := model.ManifestName(resourceName(e))
+
+		m, err := NewK8sOnlyManifest(name, []K8sEntity{e})
+		if err != nil {
+			return nil, err
+		}
+		manifests[i] = m
+	}
+	return manifests, nil
+}
+
 func NewK8sOnlyManifestForTesting(name model.ManifestName, yaml string) model.Manifest {
 	return model.Manifest{Name: name}.
 		WithDeployTarget(model.K8sTarget{Name: name.TargetName(), YAML: yaml})
+}
+
+func resourceName(e K8sEntity) string {
+	return fmt.Sprintf("k8s%s-%s", e.Kind.Kind, e.Name())
 }
